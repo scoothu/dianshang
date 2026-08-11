@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>电商后台管理系统 - 登录</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  body { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+         display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .container { width: 100%; max-width: 420px; }
+  .header { text-align: center; margin-bottom: 32px; color: #fff; }
+  .header h1 { font-size: 28px; margin-bottom: 8px; letter-spacing: 2px; }
+  .header p { font-size: 14px; opacity: 0.9; }
+  .card { background: #fff; border-radius: 16px; padding: 36px 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .tabs { display: flex; margin-bottom: 28px; border-bottom: 2px solid #f0f0f0; }
+  .tab { flex: 1; padding: 12px 0; text-align: center; cursor: pointer; font-size: 15px;
+         color: #999; font-weight: 500; border-bottom: 2px solid transparent;
+         margin-bottom: -2px; transition: all 0.2s; }
+  .tab.active { color: #667eea; border-bottom-color: #667eea; }
+  .form-item { margin-bottom: 20px; }
+  .form-item label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+  .form-item input { width: 100%; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 8px;
+                     font-size: 14px; transition: all 0.2s; outline: none; }
+  .form-item input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+  .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2);
+                 border: none; border-radius: 8px; color: #fff; font-size: 15px; cursor: pointer;
+                 font-weight: 600; transition: transform 0.1s, box-shadow 0.2s;
+                 margin-top: 8px; }
+  .btn-primary:hover { box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
+  .btn-primary:active { transform: scale(0.98); }
+  .tip { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
+  .tip code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; color: #667eea; }
+  .toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+           padding: 12px 24px; border-radius: 8px; color: #fff; font-size: 14px;
+           box-shadow: 0 6px 20px rgba(0,0,0,0.2); z-index: 999;
+           animation: slideDown 0.3s; }
+  .toast.success { background: #10b981; }
+  .toast.error { background: #ef4444; }
+  @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🛒 电商后台管理系统</h1>
+    <p>E-commerce Management System</p>
+  </div>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-tab="login">登 录</div>
+      <div class="tab" data-tab="register">注 册</div>
+    </div>
+
+    <!-- 登录表单 -->
+    <form id="loginForm">
+      <div class="form-item">
+        <label>用户名 / 邮箱</label>
+        <input type="text" id="loginUsername" placeholder="请输入用户名或邮箱" value="admin" autocomplete="username" />
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码（6-50位）" value="admin123" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn-primary">登 录</button>
+    </form>
+
+    <!-- 注册表单 -->
+    <form id="registerForm" class="hidden">
+      <div class="form-item">
+        <label>用户名</label>
+        <input type="text" id="regUsername" placeholder="请设置用户名（不超过20字符）" autocomplete="username" />
+      </div>
+      <div class="form-item">
+        <label>密码</label>
+        <input type="password" id="regPassword" placeholder="请设置密码（6-50位）" autocomplete="new-password" />
+      </div>
+      <div class="form-item">
+        <label>邮箱（选填）</label>
+        <input type="email" id="regEmail" placeholder="选填，邮箱也可作为登录账号" autocomplete="email" />
+      </div>
+      <button type="submit" class="btn-primary">注 册 账 号</button>
+    </form>
+
+    <div class="tip">默认管理员账号: <code>admin</code> / <code>admin123</code></div>
+  </div>
+</div>
+
+<script>
+  const API = '/api';
+
+  // Tab 切换
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const tab = t.dataset.tab;
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+  }));
+
+  function toast(msg, type = 'success') {
+    const d = document.createElement('div');
+    d.className = `toast ${type}`;
+    d.textContent = msg;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 2500);
+  }
+
+  async function request(url, method = 'GET', data = null) {
+    const opt = { method, headers: { 'Content-Type': 'application/json' } };
+    if (data) opt.body = JSON.stringify(data);
+    const r = await fetch(API + url, opt);
+    const t = await r.text();
+    try { return { ok: r.ok, status: r.status, data: t ? JSON.parse(t) : null }; }
+    catch { return { ok: r.ok, status: r.status, data: null }; }
+  }
+
+  // 登录
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const res = await request('/login', 'POST', { username, password });
+    if (res.ok && res.data && res.data.success) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('username', res.data.username || username);
+      toast('登录成功，正在跳转...', 'success');
+      setTimeout(() => location.href = '/', 800);
+    } else {
+      toast((res.data && res.data.message) || '登录失败', 'error');
+    }
+  });
+
+  // 注册
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const email = document.getElementById('regEmail').value.trim();
+    const res = await request('/register', 'POST', { username, password, email });
+    if (res.ok && res.data && res.data.success) {
+      toast('注册成功，请登录', 'success');
+      document.querySelectorAll('.tab')[0].click();
+      document.getElementById('loginUsername').value = username;
+      document.getElementById('loginPassword').value = password;
+      document.getElementById('registerForm').reset();
+    } else {
+      toast((res.data && res.data.message) || '注册失败', 'error');
+    }
+  });
+
+  // 已登录自动跳转
+  if (localStorage.getItem('token')) {
+    location.href = '/';
+  }
+</script>
+</body>
+</html>

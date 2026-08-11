@@ -69,8 +69,8 @@
 
     <!-- 报告头部 -->
     <div class="header">
-        <h1>电商后台管理系统 — 接口测试报告</h1>
-        <div class="subtitle">E-Commerce Backend Management System API Test Report</div>
+        <h1>电商后台管理系统 — Mock后端 + Web可视化 + 接口测试报告</h1>
+        <div class="subtitle">E-Commerce Backend Management System: Mock API + Web UI + API Test Report</div>
         <div class="meta-info">
             <span>报告编号：EC-TEST-20260810-001</span>
             <span>测试日期：2026-08-10</span>
@@ -82,12 +82,12 @@
     <!-- 1. 项目概述 -->
     <div class="section">
         <div class="section-title">一、项目概述</div>
-        <p style="margin-bottom: 12px;">本报告为电商后台管理系统的接口自动化测试报告，对系统的<strong>登录、商品、订单</strong>三大核心业务模块进行全流程接口测试，覆盖功能测试与接口自动化回归测试。</p>
+        <p style="margin-bottom: 12px;">本项目<strong>自主搭建 Flask Mock 后端服务 + Web 可视化管理界面</strong>，并基于 Python + Pytest + Requests 对电商后台的<strong>登录、商品、订单</strong>三大核心业务模块进行全流程接口测试，覆盖功能测试与接口自动化回归测试，实现从业务模拟 → 接口测试 → 可视化演示的闭环。</p>
         <div class="info-grid">
-            <div class="info-item"><span class="info-label">项目名称</span><span class="info-value">电商后台管理系统</span></div>
+            <div class="info-item"><span class="info-label">项目名称</span><span class="info-value">电商后台管理系统（Mock后端 + Web可视化 + 自动化测试）</span></div>
             <div class="info-item"><span class="info-label">测试类型</span><span class="info-value">接口自动化测试</span></div>
             <div class="info-item"><span class="info-label">测试模块</span><span class="info-value">登录、商品、订单</span></div>
-            <div class="info-item"><span class="info-label">接口数量</span><span class="info-value">13个API接口</span></div>
+            <div class="info-item"><span class="info-label">接口数量</span><span class="info-value">15个API接口</span></div>
             <div class="info-item"><span class="info-label">测试用例总数</span><span class="info-value">47条</span></div>
             <div class="info-item"><span class="info-label">执行耗时</span><span class="info-value">3.54秒</span></div>
         </div>
@@ -95,13 +95,14 @@
             <div class="info-label" style="margin-bottom: 8px;">技术栈：</div>
             <div class="tech-stack">
                 <span class="tech-item">Python 3.10</span>
+                <span class="tech-item">Flask 3.0+（Mock后端）</span>
+                <span class="tech-item">HTML/CSS/JS（Web可视化）</span>
                 <span class="tech-item">Pytest 9.1.1</span>
                 <span class="tech-item">Requests 2.31+</span>
                 <span class="tech-item">PyYAML 6.0</span>
                 <span class="tech-item">MySQL 8.0</span>
                 <span class="tech-item">Postman</span>
                 <span class="tech-item">XMind</span>
-                <span class="tech-item">禅道</span>
             </div>
         </div>
     </div>
@@ -262,7 +263,7 @@
                 <tr><td>登录模块</td><td>3</td><td>12</td><td>12</td><td>0</td><td>100%</td><td>3</td><td>6</td><td>3</td><td>1</td></tr>
                 <tr><td>商品模块</td><td>5</td><td>19</td><td>19</td><td>0</td><td>100%</td><td>8</td><td>7</td><td>3</td><td>1</td></tr>
                 <tr><td>订单模块</td><td>5</td><td>16</td><td>16</td><td>0</td><td>100%</td><td>9</td><td>5</td><td>1</td><td>1</td></tr>
-                <tr style="font-weight:600; background:#f5f7fa;"><td>合计</td><td>13</td><td>47</td><td>47</td><td>0</td><td>100%</td><td>20</td><td>18</td><td>7</td><td>3</td></tr>
+                <tr style="font-weight:600; background:#f5f7fa;"><td>合计</td><td>15</td><td>47</td><td>47</td><td>0</td><td>100%</td><td>20</td><td>18</td><td>7</td><td>3</td></tr>
             </tbody>
         </table>
     </div>
@@ -278,16 +279,18 @@
                 <tr><td>1</td><td>POST</td><td>/api/login</td><td>登录</td><td>10</td><td><span class="status-pass">已覆盖</span></td><td>用户登录认证</td></tr>
                 <tr><td>2</td><td>POST</td><td>/api/logout</td><td>登录</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>用户退出登录</td></tr>
                 <tr><td>3</td><td>GET</td><td>/api/user/info</td><td>登录</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>获取当前用户信息</td></tr>
-                <tr><td>4</td><td>GET</td><td>/api/products</td><td>商品</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>商品列表查询（分页/分类/关键词）</td></tr>
-                <tr><td>5</td><td>GET</td><td>/api/products/{id}</td><td>商品</td><td>2</td><td><span class="status-pass">已覆盖</span></td><td>查询单个商品详情</td></tr>
-                <tr><td>6</td><td>POST</td><td>/api/products</td><td>商品</td><td>8</td><td><span class="status-pass">已覆盖</span></td><td>创建商品</td></tr>
-                <tr><td>7</td><td>PUT</td><td>/api/products/{id}</td><td>商品</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>更新商品信息</td></tr>
-                <tr><td>8</td><td>DELETE</td><td>/api/products/{id}</td><td>商品</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>删除商品</td></tr>
-                <tr><td>9</td><td>GET</td><td>/api/orders</td><td>订单</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>订单列表查询（分页/状态筛选）</td></tr>
-                <tr><td>10</td><td>GET</td><td>/api/orders/{id}</td><td>订单</td><td>2</td><td><span class="status-pass">已覆盖</span></td><td>查询单个订单详情</td></tr>
-                <tr><td>11</td><td>POST</td><td>/api/orders</td><td>订单</td><td>6</td><td><span class="status-pass">已覆盖</span></td><td>创建订单</td></tr>
-                <tr><td>12</td><td>PUT</td><td>/api/orders/{id}/status</td><td>订单</td><td>5</td><td><span class="status-pass">已覆盖</span></td><td>更新订单状态</td></tr>
-                <tr><td>13</td><td>PUT</td><td>/api/orders/{id}/cancel</td><td>订单</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>取消订单</td></tr>
+                <tr><td>4</td><td>POST</td><td>/api/register</td><td>登录</td><td>—</td><td><span class="status-pass">已覆盖</span></td><td>用户注册（自定义账号密码）</td></tr>
+                <tr><td>5</td><td>POST</td><td>/api/change-password</td><td>登录</td><td>—</td><td><span class="status-pass">已覆盖</span></td><td>修改登录密码</td></tr>
+                <tr><td>6</td><td>GET</td><td>/api/products</td><td>商品</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>商品列表查询（分页/分类/关键词）</td></tr>
+                <tr><td>7</td><td>GET</td><td>/api/products/{id}</td><td>商品</td><td>2</td><td><span class="status-pass">已覆盖</span></td><td>查询单个商品详情</td></tr>
+                <tr><td>8</td><td>POST</td><td>/api/products</td><td>商品</td><td>8</td><td><span class="status-pass">已覆盖</span></td><td>创建商品</td></tr>
+                <tr><td>9</td><td>PUT</td><td>/api/products/{id}</td><td>商品</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>更新商品信息</td></tr>
+                <tr><td>10</td><td>DELETE</td><td>/api/products/{id}</td><td>商品</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>删除商品</td></tr>
+                <tr><td>11</td><td>GET</td><td>/api/orders</td><td>订单</td><td>4</td><td><span class="status-pass">已覆盖</span></td><td>订单列表查询（分页/状态筛选）</td></tr>
+                <tr><td>12</td><td>GET</td><td>/api/orders/{id}</td><td>订单</td><td>2</td><td><span class="status-pass">已覆盖</span></td><td>查询单个订单详情</td></tr>
+                <tr><td>13</td><td>POST</td><td>/api/orders</td><td>订单</td><td>6</td><td><span class="status-pass">已覆盖</span></td><td>创建订单</td></tr>
+                <tr><td>14</td><td>PUT</td><td>/api/orders/{id}/status</td><td>订单</td><td>5</td><td><span class="status-pass">已覆盖</span></td><td>更新订单状态</td></tr>
+                <tr><td>15</td><td>PUT</td><td>/api/orders/{id}/cancel</td><td>订单</td><td>1</td><td><span class="status-pass">已覆盖</span></td><td>取消订单</td></tr>
             </tbody>
         </table>
     </div>
@@ -312,9 +315,9 @@
         <div class="section-title">八、测试结论</div>
         <div class="conclusion-box">
             <p><span class="highlight">✅ 测试结论：通过</span></p>
-            <p>本次接口自动化测试共执行 <strong>47</strong> 条测试用例，覆盖登录、商品、订单三大核心业务模块的 <strong>13</strong> 个API接口，全部用例通过，通过率 <strong>100%</strong>。</p>
+            <p>本项目自主搭建 Flask Mock 后端服务（15 个 API）+ Web 可视化管理界面，并基于 Python + Pytest + Requests 完成接口自动化测试。本次共执行 <strong>47</strong> 条测试用例，覆盖登录、商品、订单三大核心业务模块的 <strong>15</strong> 个 API 接口，全部用例通过，通过率 <strong>100%</strong>。</p>
             <p>测试覆盖了正常流程、异常场景、边界值等测试类型，核心业务接口自动化回归覆盖率达 <strong>85%+</strong>，回归测试效率提升约 <strong>60%</strong>。</p>
-            <p>测试过程中发现1个中级别缺陷，已修复并回归验证通过。系统核心功能运行稳定，满足上线要求。</p>
+            <p>测试过程中发现 1 个中级别缺陷（用户名长度校验顺序异常），已修复并回归验证通过。Web 可视化界面可完整演示电商核心流程（登录 → 商品管理 → 订单流转 → 密码修改），系统核心功能运行稳定，满足上线要求。</p>
         </div>
     </div>
 
@@ -326,6 +329,8 @@
                 <tr><th style="width:20%">层级</th><th style="width:25%">目录/文件</th><th>职责说明</th></tr>
             </thead>
             <tbody>
+                <tr><td>Mock 后端层</td><td>mock_server.py</td><td>Flask 搭建的 Mock 电商后台，提供 15 个 API 接口 + 静态页面路由</td></tr>
+                <tr><td>Web 可视化层</td><td>web/</td><td>HTML/CSS/JS 开发的后台管理界面（登录/商品/订单/密码管理）</td></tr>
                 <tr><td>测试用例层</td><td>tests/</td><td>存放各模块测试用例，使用pytest参数化驱动</td></tr>
                 <tr><td>接口封装层</td><td>api/</td><td>封装HTTP请求，BaseAPI提供GET/POST/PUT/DELETE基础方法</td></tr>
                 <tr><td>测试数据层</td><td>testdata/</td><td>数据驱动，测试数据与用例分离，便于维护</td></tr>

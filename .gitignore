@@ -1,57 +1,39 @@
-# Python编译文件
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-
-# 虚拟环境
-venv/
-env/
-.venv/
-.env/
-ENV/
-
-# 依赖目录（本地安装的第三方包，用requirements.txt替代）
-lib/
-
-# 缓存目录
-.pytest_cache/
-.cache/
-*.pyc
 *.pyo
-
-# 日志文件
-logs/
-*.log
-test_output.txt
-out.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# 操作系统
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Python打包
 *.egg-info/
-*.egg
 dist/
 build/
-eggs/
+
+# 虚拟环境 & 本地依赖
+lib/
+venv/
+.venv/
+
+# 测试缓存
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
 
 # 临时文件
-*.tmp
-*.bak
-*.temp
+test_output.txt
+debug.log
 
-# 数据库（不要提交真实数据库数据）
-*.db
-*.sqlite
-*.sqlite3
+# 简历文件（不属于项目）
+resume.html
+resume.pdf
+
+# pytest-html 自动生成的临时报告（保留定制报告 test_report.html/pdf）
+reports/report.html
