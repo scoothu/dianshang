@@ -4,6 +4,7 @@ from api.product_api import ProductAPI
 from api.order_api import OrderAPI
 from testdata.order_data import order_create_data, order_status_data, order_query_data
 from utils.logger import Logger
+from utils.database import Database
 
 
 class TestOrder:
@@ -12,6 +13,7 @@ class TestOrder:
         self.product_api = ProductAPI()
         self.order_api = OrderAPI()
         self.logger = Logger()
+        self.db = Database()
         self._login()
         self.test_product_id = self._create_test_product()
 
@@ -49,7 +51,13 @@ class TestOrder:
             assert data.get("quantity") == quantity, "数量不匹配"
             assert data.get("address") == address, "地址不匹配"
             assert data.get("status") == "pending", "订单状态不正确"
-            self.logger.info(f"创建订单测试通过，订单ID: {data.get('id')}")
+            # DB层校验：验证订单已写入数据库
+            db_order = self.db.get_order(data["id"])
+            assert db_order, f"DB层校验失败：订单id={data['id']}未写入数据库"
+            assert db_order[0]["product_id"] == product_id, "DB层校验：订单商品ID不一致"
+            assert db_order[0]["quantity"] == quantity, "DB层校验：订单数量不一致"
+            assert db_order[0]["status"] == "pending", "DB层校验：订单状态不一致"
+            self.logger.info(f"创建订单测试通过(含DB校验)，订单ID: {data.get('id')}")
         else:
             self.logger.info(f"创建订单测试通过(异常场景)")
 
@@ -109,8 +117,12 @@ class TestOrder:
             get_response = self.order_api.get_order_by_id(order_id)
             order_data = get_response.json()
             assert order_data.get("status") == status, "订单状态未更新"
+            # DB层校验：验证数据库中订单状态已更新
+            db_order = self.db.get_order(order_id)
+            assert db_order, "DB层校验失败：订单不存在"
+            assert db_order[0]["status"] == status, f"DB层校验：订单状态未更新，期望{status}"
             
-            self.logger.info(f"更新订单状态测试通过，当前状态: {status}")
+            self.logger.info(f"更新订单状态测试通过(含DB校验)，当前状态: {status}")
 
     def test_cancel_order(self):
         self.logger.info("执行测试用例: 取消订单")
@@ -129,5 +141,9 @@ class TestOrder:
         get_response = self.order_api.get_order_by_id(order_id)
         order_data = get_response.json()
         assert order_data.get("status") == "cancelled", "订单状态未更新为已取消"
+        # DB层校验：验证数据库中订单状态已取消
+        db_order = self.db.get_order(order_id)
+        assert db_order, "DB层校验失败：订单不存在"
+        assert db_order[0]["status"] == "cancelled", "DB层校验：订单状态未更新为已取消"
         
-        self.logger.info("取消订单测试通过")
+        self.logger.info("取消订单测试通过(含DB校验)")

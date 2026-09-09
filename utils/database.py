@@ -1,106 +1,156 @@
-import mysql.connector
-from mysql.connector import Error
+"""
+数据库操作封装层
+支持两种模式：
+  - SQLite（默认，本地无需安装，数据存 ecommerce.db 文件）
+  - MySQL（生产环境，通过 config.yaml 配置）
+通过 config.yaml 中 database.type 字段切换
+"""
+import os
+import sqlite3
+import threading
 from utils.config import ConfigManager
 
 
 class Database:
+    """数据库操作类，统一封装 SQLite 和 MySQL 操作"""
+
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._initialized = False
+            return cls._instance
+
     def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
         config = ConfigManager().get_database_config()
-        self.host = config.get('host')
-        self.port = config.get('port')
-        self.user = config.get('user')
-        self.password = config.get('password')
-        self.database = config.get('database')
-        self.connection = None
-        self.cursor = None
+        self.db_type = config.get('type', 'sqlite')
+        self.conn = None
+        self._connect()
 
-    def connect(self):
-        try:
-            self.connection = mysql.connector.connect(
-                host=self.host,
-                port=self.port,
-                user=self.user,
-                password=self.password,
-                database=self.database
-            )
-            if self.connection.is_connected():
-                self.cursor = self.connection.cursor(dictionary=True)
-                return True
-        except Error as e:
-            print(f"Database connection error: {e}")
-            return False
+    def _connect(self):
+        if self.db_type == 'sqlite':
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ecommerce.db')
+            self.conn = sqlite3.connect(db_path, check_same_thread=False)
+            self.conn.row_factory = sqlite3.Row
+        else:
+            try:
+                import mysql.connector
+                self.conn = mysql.connector.connect(
+                    host=config.get('host'),
+                    port=config.get('port'),
+                    user=config.get('user'),
+                    password=config.get('password'),
+                    database=config.get('database')
+                )
+            except Exception as e:
+                print(f"MySQL连接失败，回退到SQLite: {e}")
+                self.db_type = 'sqlite'
+                db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ecommerce.db')
+                self.conn = sqlite3.connect(db_path, check_same_thread=False)
+                self.conn.row_factory = sqlite3.Row
 
-    def disconnect(self):
-        if self.connection and self.connection.is_connected():
-            self.cursor.close()
-            self.connection.close()
+    def init_tables(self):
+        """初始化数据库表结构"""
+        cursor = self.conn.cursor()
+        cursor.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                email TEXT,
+                role TEXT DEFAULT 'user',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                stock INTEGER DEFAULT 0,
+                category TEXT,
+                description TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                product_id INTEGER,
+                quantity INTEGER,
+                address TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        self.conn.commit()
 
-    def execute_query(self, query, params=None):
-        try:
-            if not self.connection or not self.connection.is_connected():
-                self.connect()
-            self.cursor.execute(query, params)
-            return self.cursor.fetchall()
-        except Error as e:
-            print(f"Query execution error: {e}")
-            return None
+    # ==================== 通用查询 ====================
+    def query(self, sql, params=None):
+        cursor = self.conn.cursor()
+        cursor.execute(sql, params or ())
+        return [dict(row) for row in cursor.fetchall()]
 
-    def execute_update(self, query, params=None):
-        try:
-            if not self.connection or not self.connection.is_connected():
-                self.connect()
-            self.cursor.execute(query, params)
-            self.connection.commit()
-            return self.cursor.rowcount
-        except Error as e:
-            print(f"Update execution error: {e}")
-            self.connection.rollback()
-            return 0
+    def update(self, sql, params=None):
+        cursor = self.conn.cursor()
+        cursor.execute(sql, params or ())
+        self.conn.commit()
+        return cursor.lastrowid
 
-    def get_user_by_username(self, username):
-        query = "SELECT * FROM users WHERE username = %s"
-        result = self.execute_query(query, (username,))
-        return result[0] if result else None
+    # ==================== 用户 ====================
+    def get_user(self, username):
+        return self.query("SELECT * FROM users WHERE username=?", (username,))
 
-    def get_product_by_id(self, product_id):
-        query = "SELECT * FROM products WHERE id = %s"
-        result = self.execute_query(query, (product_id,))
-        return result[0] if result else None
+    def add_user(self, username, password, email, role='user'):
+        return self.update(
+            "INSERT INTO users (username,password,email,role) VALUES (?,?,?,?)",
+            (username, password, email, role)
+        )
 
-    def get_order_by_id(self, order_id):
-        query = "SELECT * FROM orders WHERE id = %s"
-        result = self.execute_query(query, (order_id,))
-        return result[0] if result else None
+    # ==================== 商品 ====================
+    def get_all_products(self):
+        return self.query("SELECT * FROM products")
 
-    def insert_test_user(self, username, password, email):
-        query = """
-        INSERT INTO users (username, password, email, created_at)
-        VALUES (%s, %s, %s, NOW())
-        """
-        return self.execute_update(query, (username, password, email))
+    def get_product(self, product_id):
+        return self.query("SELECT * FROM products WHERE id=?", (product_id,))
 
-    def insert_test_product(self, name, price, stock, category):
-        query = """
-        INSERT INTO products (name, price, stock, category, created_at)
-        VALUES (%s, %s, %s, %s, NOW())
-        """
-        return self.execute_update(query, (name, price, stock, category))
+    def add_product(self, name, price, stock, category, description=''):
+        return self.update(
+            "INSERT INTO products (name,price,stock,category,description) VALUES (?,?,?,?,?)",
+            (name, price, stock, category, description)
+        )
 
-    def insert_test_order(self, user_id, product_id, quantity, status):
-        query = """
-        INSERT INTO orders (user_id, product_id, quantity, status, created_at)
-        VALUES (%s, %s, %s, %s, NOW())
-        """
-        return self.execute_update(query, (user_id, product_id, quantity, status))
+    def update_product(self, product_id, name, price, stock, category, description=''):
+        return self.update(
+            "UPDATE products SET name=?,price=?,stock=?,category=?,description=? WHERE id=?",
+            (name, price, stock, category, description, product_id)
+        )
 
-    def delete_test_user(self, username):
-        query = "DELETE FROM users WHERE username = %s"
-        return self.execute_update(query, (username,))
+    def delete_product(self, product_id):
+        return self.update("DELETE FROM products WHERE id=?", (product_id,))
 
-    def delete_test_product(self, name):
-        query = "DELETE FROM products WHERE name = %s"
-        return self.execute_update(query, (name,))
+    # ==================== 订单 ====================
+    def get_all_orders(self):
+        return self.query("SELECT * FROM orders")
 
-    def delete_test_order(self, order_id):
-        query = "DELETE FROM orders WHERE id = %s"
-        return self.execute_update(query, (order_id,))
+    def get_order(self, order_id):
+        return self.query("SELECT * FROM orders WHERE id=?", (order_id,))
+
+    def add_order(self, user_id, product_id, quantity, address, status='pending'):
+        return self.update(
+            "INSERT INTO orders (user_id,product_id,quantity,address,status) VALUES (?,?,?,?,?)",
+            (user_id, product_id, quantity, address, status)
+        )
+
+    def update_order_status(self, order_id, status):
+        return self.update("UPDATE orders SET status=? WHERE id=?", (status, order_id))
+
+    def cancel_order(self, order_id):
+        return self.update("UPDATE orders SET status='cancelled' WHERE id=?", (order_id,))
+
+    def close(self):
+        if self.conn:
+            self.conn.close()

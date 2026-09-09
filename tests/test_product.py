@@ -3,6 +3,7 @@ from api.login_api import LoginAPI
 from api.product_api import ProductAPI
 from testdata.product_data import product_create_data, product_update_data, product_query_data
 from utils.logger import Logger
+from utils.database import Database
 
 
 class TestProduct:
@@ -10,6 +11,7 @@ class TestProduct:
         self.login_api = LoginAPI()
         self.product_api = ProductAPI()
         self.logger = Logger()
+        self.db = Database()
         self._login()
 
     def _login(self):
@@ -35,7 +37,13 @@ class TestProduct:
             assert data.get("price") == price, "商品价格不匹配"
             assert data.get("stock") == stock, "商品库存不匹配"
             assert data.get("category") == category, "商品分类不匹配"
-            self.logger.info(f"创建商品测试通过: {name}")
+            # DB层校验：验证商品已写入数据库
+            db_product = self.db.get_product(data["id"])
+            assert db_product, f"DB层校验失败：商品id={data['id']}未写入数据库"
+            assert db_product[0]["name"] == name, "DB层校验：商品名称不一致"
+            assert db_product[0]["price"] == price, "DB层校验：商品价格不一致"
+            assert db_product[0]["stock"] == stock, "DB层校验：商品库存不一致"
+            self.logger.info(f"创建商品测试通过(含DB校验): {name}")
         else:
             self.logger.info(f"创建商品测试通过(异常场景): {name}")
 
@@ -104,7 +112,15 @@ class TestProduct:
             if category is not None:
                 assert update_data.get("category") == category, "商品分类未更新"
             
-            self.logger.info("更新商品测试通过")
+            # DB层校验：验证数据库中的商品已更新
+            db_product = self.db.get_product(product_id)
+            assert db_product, "DB层校验失败：商品不存在"
+            if name is not None:
+                assert db_product[0]["name"] == name, "DB层校验：商品名称未更新"
+            if price is not None:
+                assert db_product[0]["price"] == price, "DB层校验：商品价格未更新"
+            
+            self.logger.info("更新商品测试通过(含DB校验)")
 
     def test_delete_product(self):
         self.logger.info("执行测试用例: 删除商品")
@@ -122,5 +138,8 @@ class TestProduct:
         
         get_response = self.product_api.get_product_by_id(product_id)
         assert get_response.status_code == 404, f"预期状态码404，实际{get_response.status_code}"
+        # DB层校验：验证商品已从数据库删除
+        db_product = self.db.get_product(product_id)
+        assert not db_product, f"DB层校验失败：商品id={product_id}未从数据库删除"
         
-        self.logger.info("删除商品测试通过")
+        self.logger.info("删除商品测试通过(含DB校验)")

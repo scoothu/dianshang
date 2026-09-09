@@ -27,6 +27,9 @@ Thumbs.db
 *.log
 logs/
 
+# 数据库文件（本地SQLite）
+*.db
+
 # 临时文件
 test_output.txt
 debug.log

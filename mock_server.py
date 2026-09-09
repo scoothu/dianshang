@@ -1,15 +1,24 @@
 """
 电商后台管理系统 Mock 服务
 用于模拟电商后台API，供测试项目调用 + Web管理界面调用
+数据双写：内存字典（快速响应） + SQLite数据库（持久化，支持DB层校验）
 """
 from flask import Flask, request, jsonify, send_from_directory
 import uuid
 import os
+import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
+sys.path.insert(0, BASE_DIR)
+
+from utils.database import Database
 
 app = Flask(__name__, static_folder=WEB_DIR, static_url_path="/web")
+
+# ==================== 数据库初始化 ====================
+db = Database()
+db.init_tables()
 
 # ==================== 模拟数据存储 ====================
 users = {
@@ -33,7 +42,7 @@ STATUS_CN = {
 
 
 def init_sample_data():
-    """初始化示例数据"""
+    """初始化示例数据：内存 + 数据库双写"""
     global next_product_id, next_order_id
     samples = [
         ("iPhone 15 Pro", 7999.00, 120, "数码电子", "A17 Pro芯片，钛金属机身"),
@@ -45,27 +54,37 @@ def init_sample_data():
     ]
     products.clear()
     orders.clear()
+    # 清空数据库旧数据
+    db.update("DELETE FROM products")
+    db.update("DELETE FROM orders")
     next_product_id = 1
     next_order_id = 1
     for name, price, stock, category, description in samples:
+        # 内存
         products[next_product_id] = {
             "id": next_product_id, "name": name, "price": price,
             "stock": stock, "category": category, "description": description,
         }
+        # 数据库
+        db.add_product(name, price, stock, category, description)
         next_product_id += 1
     # 示例订单
     demo_orders = [
-        (1, 2, "湖南省长沙市岳麓区湖南大学南校区"),
-        (2, 1, "广东省深圳市南山区科技园"),
-        (4, 1, "湖南省长沙市天心区芙蓉中路"),
+        (1, 2, "湖南省长沙市岳麓区湖南大学南校区", "pending"),
+        (2, 1, "广东省深圳市南山区科技园", "paid"),
+        (4, 1, "湖南省长沙市天心区芙蓉中路", "shipped"),
     ]
-    for idx, (pid, qty, addr) in enumerate(demo_orders):
+    for pid, qty, addr, status in demo_orders:
         orders[next_order_id] = {
             "id": next_order_id, "product_id": pid, "quantity": qty,
-            "address": addr, "status": VALID_STATUSES[idx],
+            "address": addr, "status": status,
         }
+        db.add_order(1, pid, qty, addr, status)
         next_order_id += 1
-    print(f"[Mock] 初始化 {len(products)} 个商品、{len(orders)} 个订单")
+    # 写入默认用户到数据库
+    if not db.get_user("admin"):
+        db.add_user("admin", "admin123", "admin@test.com", "admin")
+    print(f"[Mock] 初始化 {len(products)} 个商品、{len(orders)} 个订单（已同步数据库）")
 
 
 init_sample_data()
@@ -118,6 +137,7 @@ def register():
     users[username] = info
     if info["email"] and info["email"] not in users:
         users[info["email"]] = info
+    db.add_user(username, password, info["email"], "user")
     return jsonify({"success": True, "message": "注册成功"}), 201
 
 
@@ -250,6 +270,7 @@ def create_product():
     product = {"id": next_product_id, "name": name, "price": price, "stock": stock,
                "category": category, "description": description}
     products[next_product_id] = product
+    db.add_product(name, price, stock, category, description)
     next_product_id += 1
     return jsonify(product), 201
 
@@ -282,6 +303,8 @@ def update_product(product_id):
     if "description" in data and data["description"] is not None:
         product["description"] = data["description"]
 
+    db.update_product(product_id, product["name"], product["price"],
+                      product["stock"], product["category"], product["description"])
     return jsonify({"success": True, "message": "更新成功"}), 200
 
 
@@ -290,6 +313,7 @@ def delete_product(product_id):
     if product_id not in products:
         return jsonify({"success": False, "message": "商品不存在"}), 404
     del products[product_id]
+    db.delete_product(product_id)
     return jsonify({"success": True, "message": "删除成功"}), 200
 
 
@@ -346,6 +370,7 @@ def create_order():
     order = {"id": next_order_id, "product_id": product_id, "quantity": quantity,
              "address": address, "status": "pending"}
     orders[next_order_id] = order
+    db.add_order(1, product_id, quantity, address, "pending")
     next_order_id += 1
     return jsonify(order), 201
 
@@ -360,6 +385,7 @@ def update_order_status(order_id):
     if status not in VALID_STATUSES:
         return jsonify({"success": False, "message": "无效的订单状态"}), 400
     order["status"] = status
+    db.update_order_status(order_id, status)
     return jsonify({"success": True, "message": "状态更新成功"}), 200
 
 
@@ -369,6 +395,7 @@ def cancel_order(order_id):
     if not order:
         return jsonify({"success": False, "message": "订单不存在"}), 404
     order["status"] = "cancelled"
+    db.cancel_order(order_id)
     return jsonify({"success": True, "message": "取消成功"}), 200
 
 
